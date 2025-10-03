@@ -11,7 +11,7 @@ A modern, feature-rich implementation of Suicide Chess (also known as Anti-Chess
 - **Real-time Score Tracking**: Points based on captured pieces values
 
 ### Modern Features
-- **🔊 Sound Effects**: Move and capture sounds (audio files required)
+- **🔊 Sound Effects**: Move and capture sounds
 - **📱 Responsive Design**: Works on phones, tablets, and desktop
 - **🎨 Material 3 UI**: Clean, modern interface without distracting gradients
 - **📊 Game History**: Local storage of all completed games with statistics
@@ -203,22 +203,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you have any questions or issues:
 - Open an issue on GitHub
 - Check the documentation in the code
-- Review the `assets/sounds/README.md` for audio setup
+
 
 ---
 
 **Enjoy playing Suicide Chess! 🎉**
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# suicide
