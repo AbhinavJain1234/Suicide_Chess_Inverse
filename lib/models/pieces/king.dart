@@ -25,7 +25,7 @@ class King extends Piece {
       Position newPos = Position(x, y);
 
       if (_isValidPosition(newPos)) {
-        if (board[x][y] == null || board[x][y]!.color != color) {
+        if (board[y][x] == null || board[y][x]!.color != color) {
           validMoves.add(newPos);
         }
       }
@@ -38,7 +38,7 @@ class King extends Piece {
   List<Position> getForcedCaptures(List<List<Piece?>> board) {
     return getValidMoves(board)
         .where((pos) =>
-            board[pos.x][pos.y] != null && board[pos.x][pos.y]!.color != color)
+            board[pos.y][pos.x] != null && board[pos.y][pos.x]!.color != color)
         .toList();
   }
 

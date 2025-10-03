@@ -7,10 +7,10 @@ class PieceWidget extends StatelessWidget {
   final double size;
 
   const PieceWidget({
-    Key? key,
+    super.key,
     required this.piece,
     required this.size,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -5,9 +5,9 @@ class MoveHistory extends StatelessWidget {
   final List<Move> moves;
 
   const MoveHistory({
-    Key? key,
+    super.key,
     required this.moves,
-  }) : super(key: key);
+  });
 
   String _formatMove(Move move) {
     return '${move.from.x},${move.from.y} → ${move.to.x},${move.to.y}';

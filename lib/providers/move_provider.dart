@@ -22,12 +22,36 @@ class MoveProvider extends ChangeNotifier {
       // In Suicide Chess, if there are forced captures, only show those
       if (gameState.hasForcedMoves()) {
         _validMoves = _forcedCaptures;
+
+        // If selecting a piece that can't capture when captures are forced,
+        // find and auto-select a piece that can capture
+        if (_forcedCaptures.isEmpty) {
+          _findAndSelectForcedCapturePiece(gameState);
+        }
       }
     } else {
       clearSelection();
     }
 
     notifyListeners();
+  }
+
+  void _findAndSelectForcedCapturePiece(GameState gameState) {
+    // Find the first piece that has forced captures
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 8; x++) {
+        final piece = gameState.board[y][x];
+        if (piece != null && piece.color == gameState.currentTurn) {
+          final captures = piece.getForcedCaptures(gameState.board);
+          if (captures.isNotEmpty) {
+            _selectedPosition = Position(x, y);
+            _validMoves = captures;
+            _forcedCaptures = captures;
+            return;
+          }
+        }
+      }
+    }
   }
 
   void clearSelection() {

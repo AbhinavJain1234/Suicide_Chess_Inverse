@@ -10,15 +10,17 @@ class BoardSquare extends StatelessWidget {
   final bool isSelected;
   final bool isValidMove;
   final bool isForcedCapture;
+  final Function(Position)? onTap;
 
   const BoardSquare({
-    Key? key,
+    super.key,
     required this.position,
     this.piece,
     this.isSelected = false,
     this.isValidMove = false,
     this.isForcedCapture = false,
-  }) : super(key: key);
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,18 +35,21 @@ class BoardSquare extends StatelessWidget {
           : GameConstants.DARK_SQUARE;
     }
 
-    return Container(
-      color: getSquareColor(),
-      child: piece != null
-          ? Draggable<Position>(
-              data: position,
-              feedback:
-                  PieceWidget(piece: piece!, size: GameConstants.SQUARE_SIZE),
-              childWhenDragging: Container(),
-              child:
-                  PieceWidget(piece: piece!, size: GameConstants.SQUARE_SIZE),
-            )
-          : null,
+    return GestureDetector(
+      onTap: () => onTap?.call(position),
+      child: Container(
+        color: getSquareColor(),
+        child: piece != null
+            ? Draggable<Position>(
+                data: position,
+                feedback:
+                    PieceWidget(piece: piece!, size: GameConstants.SQUARE_SIZE),
+                childWhenDragging: Container(),
+                child:
+                    PieceWidget(piece: piece!, size: GameConstants.SQUARE_SIZE),
+              )
+            : null,
+      ),
     );
   }
 }

@@ -12,7 +12,7 @@ class Pawn extends Piece {
 
     // Forward move
     Position forward = Position(position.x, position.y + direction);
-    if (_isValidPosition(forward) && board[forward.x][forward.y] == null) {
+    if (_isValidPosition(forward) && board[forward.y][forward.x] == null) {
       validMoves.add(forward);
 
       // Double move on first turn
@@ -20,7 +20,7 @@ class Pawn extends Piece {
         Position doubleForward =
             Position(position.x, position.y + 2 * direction);
         if (_isValidPosition(doubleForward) &&
-            board[doubleForward.x][doubleForward.y] == null) {
+            board[doubleForward.y][doubleForward.x] == null) {
           validMoves.add(doubleForward);
         }
       }
@@ -30,8 +30,8 @@ class Pawn extends Piece {
     for (int dx in [-1, 1]) {
       Position capture = Position(position.x + dx, position.y + direction);
       if (_isValidPosition(capture) &&
-          board[capture.x][capture.y] != null &&
-          board[capture.x][capture.y]!.color != color) {
+          board[capture.y][capture.x] != null &&
+          board[capture.y][capture.x]!.color != color) {
         validMoves.add(capture);
       }
     }
@@ -43,7 +43,7 @@ class Pawn extends Piece {
   List<Position> getForcedCaptures(List<List<Piece?>> board) {
     return getValidMoves(board)
         .where((pos) =>
-            board[pos.x][pos.y] != null && board[pos.x][pos.y]!.color != color)
+            board[pos.y][pos.x] != null && board[pos.y][pos.x]!.color != color)
         .toList();
   }
 

@@ -7,9 +7,9 @@ class ScoreBoard extends StatelessWidget {
   final GameState gameState;
 
   const ScoreBoard({
-    Key? key,
+    super.key,
     required this.gameState,
-  }) : super(key: key);
+  });
 
   int _calculateScore(PieceColor color) {
     // Calculate score based on captured pieces

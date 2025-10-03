@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:suicide/utils/constants.dart';
 
 class RulesDialog extends StatelessWidget {
+  const RulesDialog({super.key});
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(

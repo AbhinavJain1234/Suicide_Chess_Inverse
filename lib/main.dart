@@ -4,9 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:suicide/providers/game_provider.dart';
 import 'package:suicide/providers/move_provider.dart';
-import 'package:suicide/screens/home_screen.dart';
-import 'package:suicide/services/sound_service.dart';
-import 'package:suicide/services/storage_service.dart';
+import 'package:suicide/router/app_router.dart';
+// storage and sound services are not used in the simplified provider
 
 class AppInitializer extends StatelessWidget {
   final Widget child;
@@ -24,27 +23,8 @@ class AppInitializer extends StatelessWidget {
         if (snapshot.hasData) {
           return MultiProvider(
             providers: [
-              Provider<StorageService>(
-                create: (_) => StorageService(snapshot.data!),
-                dispose: (_, service) async {
-                  // Any cleanup if needed
-                },
-              ),
-              Provider<SoundService>(
-                create: (_) => SoundService(),
-              ),
-              ChangeNotifierProxyProvider<StorageService, GameProvider>(
-                create: (context) => GameProvider(
-                  storageService: context.read<StorageService>(),
-                  soundService: context.read<SoundService>(),
-                ),
-                update: (context, storage, previousGame) {
-                  return previousGame ??
-                      GameProvider(
-                        storageService: storage,
-                        soundService: context.read<SoundService>(),
-                      );
-                },
+              ChangeNotifierProvider<GameProvider>(
+                create: (_) => GameProvider(),
               ),
               ChangeNotifierProvider<MoveProvider>(
                 create: (_) => MoveProvider(),
@@ -80,14 +60,27 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Suicide',
+      title: 'Suicide Chess',
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
       ),
-      home: HomeScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system, // Follow device theme
+      routerConfig: AppRouter.router,
     );
   }
 }

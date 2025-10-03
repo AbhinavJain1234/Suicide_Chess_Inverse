@@ -9,31 +9,33 @@ import 'package:suicide/models/pieces/bishop.dart';
 import 'package:suicide/models/pieces/queen.dart';
 import 'package:suicide/models/pieces/king.dart';
 import 'package:suicide/models/positions.dart';
-import 'package:suicide/services/sound_service.dart';
-import 'package:suicide/services/storage_service.dart';
 import 'package:suicide/utils/move_validator.dart';
+import 'package:suicide/utils/constants.dart';
+import 'package:suicide/services/sound_service.dart';
+import 'package:suicide/services/game_history_service.dart';
+import 'package:suicide/services/game_settings_service.dart';
 
 class GameProvider extends ChangeNotifier {
   late GameState _gameState;
-  final StorageService _storageService;
-  final SoundService _soundService;
-  List<Move> _moveHistory = [];
+  final List<GameState> _snapshots = [];
+  final List<Move> _moveHistory = [];
+  final SoundService _soundService = SoundService();
   bool _isGamePaused = false;
 
-  GameProvider({
-    required StorageService storageService,
-    required SoundService soundService,
-  })  : _storageService = storageService,
-        _soundService = soundService {
+  GameProvider() {
     _initializeGame();
   }
 
   GameState get gameState => _gameState;
   List<Move> get moveHistory => _moveHistory;
   bool get isGamePaused => _isGamePaused;
+  SoundService get soundService => _soundService;
 
   // Initialize new game
-  void _initializeGame() {
+  void _initializeGame() async {
+    final moveLimit = await GameSettingsService.getMoveLimit();
+    final now = DateTime.now();
+
     _gameState = GameState(
       board: _createInitialBoard(),
       currentTurn: PieceColor.white,
@@ -42,8 +44,11 @@ class GameProvider extends ChangeNotifier {
         PieceColor.black: <Piece>[], // Initialize as List<Piece>
       },
       isGameOver: false,
+      maxHalfMoves: moveLimit,
+      gameStartTime: now,
     );
     _moveHistory.clear();
+    _snapshots.clear();
     notifyListeners();
   }
 
@@ -89,6 +94,8 @@ class GameProvider extends ChangeNotifier {
   // Execute a move
   Future<void> makeMove(Move move) async {
     if (!MoveValidator.isValidMove(_gameState, move)) return;
+    // Snapshot current state for undo
+    _snapshots.add(_gameState.clone());
 
     final piece = _gameState.board[move.from.y][move.from.x];
     final capturedPiece = _gameState.board[move.to.y][move.to.x];
@@ -98,19 +105,45 @@ class GameProvider extends ChangeNotifier {
     _gameState.board[move.from.y][move.from.x] = null;
     if (piece != null) {
       piece.position = move.to;
+      piece.hasMoved = true;
     }
 
-    // Handle capture - Fixed the capture handling
+    // Handle capture - attribute score to owner of captured piece
     if (capturedPiece != null) {
-      // Add to the correct list based on the captured piece's color
       _gameState.capturedPieces[capturedPiece.color]!.add(capturedPiece);
-      await _soundService.playCaptureSound();
+      // Play capture sound
+      _soundService.playCaptureSound();
     } else {
-      await _soundService.playMoveSound();
+      // Play move sound
+      _soundService.playMoveSound();
     }
 
     _moveHistory.add(move);
+    _gameState.halfMoveCount++;
+
+    // Check game over and move limit
     _checkWinCondition();
+    if (!_gameState.isGameOver &&
+        _gameState.halfMoveCount >= _gameState.maxHalfMoves) {
+      // Game ends due to move limit; decide winner by score
+      final whiteScore = _calculateScore(PieceColor.white);
+      final blackScore = _calculateScore(PieceColor.black);
+      if (whiteScore > blackScore) {
+        _gameState.winner = PieceColor.white;
+      } else if (blackScore > whiteScore) {
+        _gameState.winner = PieceColor.black;
+      } else {
+        _gameState.winner = null; // draw
+      }
+      _gameState.isGameOver = true;
+    }
+
+    // If game is over, mark as finished and save to history
+    if (_gameState.isGameOver) {
+      _gameState.isFinished = true;
+      _gameState.gameEndTime = DateTime.now();
+      await _saveGameToHistory();
+    }
 
     if (!_gameState.isGameOver) {
       _gameState.currentTurn = _gameState.currentTurn == PieceColor.white
@@ -118,7 +151,6 @@ class GameProvider extends ChangeNotifier {
           : PieceColor.white;
     }
 
-    await _storageService.saveGameState(_gameState);
     notifyListeners();
   }
 
@@ -140,7 +172,7 @@ class GameProvider extends ChangeNotifier {
       }
     }
 
-    // Check win condition (remember in Suicide Chess, losing all pieces is winning)
+    // Check win condition (player with zero pieces loses and opponent wins)
     if (whitePieces == 0 || blackPieces == 0) {
       _gameState.isGameOver = true;
       _gameState.winner =
@@ -200,14 +232,57 @@ class GameProvider extends ChangeNotifier {
 
   // Undo last move (if possible)
   Future<void> undoLastMove() async {
-    if (_moveHistory.isEmpty) return;
+    if (_snapshots.isEmpty) return;
+    final previous = _snapshots.removeLast();
+    _gameState = previous;
+    if (_moveHistory.isNotEmpty) _moveHistory.removeLast();
+    notifyListeners();
+  }
 
-    // Load the last saved game state
-    final previousState = await _storageService.loadGameState();
-    if (previousState != null) {
-      _gameState = previousState;
-      _moveHistory.removeLast();
-      notifyListeners();
+  int _calculateScore(PieceColor color) {
+    return _gameState.capturedPieces[color]!
+        .map((piece) => GameConstants.PIECE_VALUES[piece.type] ?? 0)
+        .fold(0, (sum, v) => sum + v);
+  }
+
+  // Public method to get score
+  int getScore(PieceColor color) {
+    return _calculateScore(color);
+  }
+
+  // Save completed game to history
+  Future<void> _saveGameToHistory() async {
+    if (!_gameState.isGameOver || _gameState.gameStartTime == null) return;
+
+    final duration = _gameState.gameEndTime != null
+        ? _gameState.gameEndTime!.difference(_gameState.gameStartTime!)
+        : Duration.zero;
+
+    GameResult result;
+    String winner;
+
+    if (_gameState.winner == PieceColor.white) {
+      result = GameResult.whiteWins;
+      winner = 'White';
+    } else if (_gameState.winner == PieceColor.black) {
+      result = GameResult.blackWins;
+      winner = 'Black';
+    } else {
+      result = GameResult.draw;
+      winner = 'Draw';
     }
+
+    final gameRecord = GameRecord(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      date: _gameState.gameStartTime!,
+      playerWhite: 'Player', // Default player name
+      playerBlack: 'Computer', // Default player name
+      winner: winner,
+      moves: _moveHistory.length,
+      duration: duration,
+      result: result,
+    );
+
+    await GameHistoryService.addGameRecord(gameRecord);
   }
 }

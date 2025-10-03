@@ -9,6 +9,11 @@ class GameState {
   Map<PieceColor, List<Piece>> capturedPieces;
   bool isGameOver;
   PieceColor? winner;
+  int halfMoveCount; // count of ply (half-moves) since start
+  int maxHalfMoves; // maximum allowed half-moves (default 60 => 30 total moves)
+  bool isFinished; // tracks if game is completely finished
+  DateTime? gameStartTime;
+  DateTime? gameEndTime;
 
   GameState({
     required this.board,
@@ -17,12 +22,87 @@ class GameState {
     Map<PieceColor, List<Piece>>? capturedPieces,
     this.isGameOver = false,
     this.winner,
+    this.halfMoveCount = 0,
+    this.maxHalfMoves = 60,
+    this.isFinished = false,
+    this.gameStartTime,
+    this.gameEndTime,
   })  : moveHistory = moveHistory ?? [],
         capturedPieces = capturedPieces ??
             {
               PieceColor.white: [],
               PieceColor.black: [],
             };
+
+  // Create a deep copy clone of the game state for undo snapshots
+  GameState clone() {
+    // Clone board
+    List<List<Piece?>> newBoard = List.generate(
+      8,
+      (y) => List<Piece?>.filled(8, null),
+    );
+
+    for (int x = 0; x < 8; x++) {
+      for (int y = 0; y < 8; y++) {
+        final piece = board[x][y];
+        if (piece != null) {
+          // Create a new piece instance based on its runtime type
+          Piece? cloned;
+          switch (piece.type) {
+            case PieceType.pawn:
+              cloned = PieceFactory.createPawn(piece.color, piece.position);
+              break;
+            case PieceType.rook:
+              cloned = PieceFactory.createRook(piece.color, piece.position);
+              break;
+            case PieceType.knight:
+              cloned = PieceFactory.createKnight(piece.color, piece.position);
+              break;
+            case PieceType.bishop:
+              cloned = PieceFactory.createBishop(piece.color, piece.position);
+              break;
+            case PieceType.queen:
+              cloned = PieceFactory.createQueen(piece.color, piece.position);
+              break;
+            case PieceType.king:
+              cloned = PieceFactory.createKing(piece.color, piece.position);
+              break;
+          }
+          cloned.hasMoved = piece.hasMoved;
+          cloned.position = Position(piece.position.x, piece.position.y);
+          newBoard[x][y] = cloned;
+        }
+      }
+    }
+
+    // Clone captured pieces lists
+    Map<PieceColor, List<Piece>> newCaptured = {
+      PieceColor.white: [],
+      PieceColor.black: [],
+    };
+
+    capturedPieces.forEach((color, list) {
+      for (var p in list) {
+        // create a lightweight clone keeping type and color
+        final clone = PieceFactory.createByType(p.type, p.color, p.position);
+        if (clone != null) newCaptured[color]!.add(clone);
+      }
+    });
+
+    return GameState(
+      board: newBoard,
+      currentTurn: currentTurn,
+      moveHistory: List.from(moveHistory),
+      capturedPieces: newCaptured,
+      isGameOver: isGameOver,
+      winner: winner,
+      halfMoveCount: halfMoveCount,
+      maxHalfMoves: maxHalfMoves,
+      isFinished: isFinished,
+      gameStartTime: gameStartTime,
+      gameEndTime: gameEndTime,
+    );
+  }
 
   bool hasForcedMoves() {
     for (int x = 0; x < 8; x++) {
@@ -82,6 +162,7 @@ class GameState {
 
     // Add to history
     moveHistory.add(move);
+    halfMoveCount++;
 
     // Switch turns
     currentTurn =
@@ -99,10 +180,11 @@ class GameState {
     for (int x = 0; x < 8; x++) {
       for (int y = 0; y < 8; y++) {
         if (board[x][y] != null) {
-          if (board[x][y]!.color == PieceColor.white)
+          if (board[x][y]!.color == PieceColor.white) {
             whiteCount++;
-          else
+          } else {
             blackCount++;
+          }
         }
       }
     }

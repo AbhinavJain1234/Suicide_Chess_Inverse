@@ -17,10 +17,10 @@ class Rook extends Piece {
       int x = position.x + dx, y = position.y + dy;
 
       while (_isValidPosition(Position(x, y))) {
-        if (board[x][y] == null) {
+        if (board[y][x] == null) {
           validMoves.add(Position(x, y));
         } else {
-          if (board[x][y]!.color != color) {
+          if (board[y][x]!.color != color) {
             validMoves.add(Position(x, y));
           }
           break;
@@ -37,7 +37,7 @@ class Rook extends Piece {
   List<Position> getForcedCaptures(List<List<Piece?>> board) {
     return getValidMoves(board)
         .where((pos) =>
-            board[pos.x][pos.y] != null && board[pos.x][pos.y]!.color != color)
+            board[pos.y][pos.x] != null && board[pos.y][pos.x]!.color != color)
         .toList();
   }
 

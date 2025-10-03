@@ -7,10 +7,10 @@ class GameOverDialog extends StatelessWidget {
   final VoidCallback onNewGame;
 
   const GameOverDialog({
-    Key? key,
+    super.key,
     required this.winner,
     required this.onNewGame,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
